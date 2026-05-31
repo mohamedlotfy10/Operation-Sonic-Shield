@@ -1,0 +1,90 @@
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    background: url('/static/ksiu_background.jpg') no-repeat center center fixed;
+    background-size: cover;
+    color: #fff;
+}
+
+.main-title {
+    text-align: center;
+    padding: 20px;
+    font-size: 2em;
+    color: #fff;
+    text-shadow: 2px 2px 4px #000;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 80vh;
+}
+
+.card {
+    background: rgba(0, 0, 0, 0.7);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    width: 300px;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.card h2 {
+    margin-top: 0;
+}
+
+.card label {
+    display: block;
+    margin: 10px 0 5px;
+    text-align: left;
+}
+
+.card input[type="text"],
+.card input[type="password"],
+.card input[type="file"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: none;
+    border-radius: 5px;
+    box-sizing: border-box;
+}
+
+.card button {
+    width: 100%;
+    padding: 10px;
+    background-color: #007BFF;
+    border: none;
+    border-radius: 5px;
+    color: white;
+    cursor: pointer;
+}
+
+.card button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.card button:hover:not(:disabled) {
+    background-color: #0056b3;
+}
+
+.card a {
+    display: block;
+    margin-top: 10px;
+    color: #007BFF;
+    text-decoration: none;
+}
+
+.card a:hover {
+    text-decoration: underline;
+}
+
+#predictionResult {
+    white-space: pre-wrap;
+    margin-top: 10px;
+}

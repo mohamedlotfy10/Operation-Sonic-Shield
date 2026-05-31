@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Classification</title>
+    <style>
+        body {
+            font-family: -apple-system, 'SF UI Display', 'Roboto', 'Arial', sans-serif;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            background: url('/static/ksiu_background.jpg') no-repeat center center fixed; /* Local path to image in static folder */
+            background-size: cover;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.5s ease;
+        }
+        .main-title {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2rem;
+            font-weight: bold;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            z-index: 1;
+            white-space: nowrap; /* Prevent text wrapping */
+        }
+        .container {
+            background: rgba(0, 0, 0, 0.7); /* Semi-transparent overlay for readability */
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            width: 300px;
+            text-align: center;
+            z-index: 2;
+        }
+        .card {
+            background: #4a4a4a;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        label {
+            font-size: 1.1rem;
+            color: #e0e0e0;
+            margin-bottom: 10px;
+            display: block;
+        }
+        input[type="file"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background: #f0f0f0;
+            color: #333;
+            box-sizing: border-box;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        input[type="file"]::file-selector-button {
+            padding: 8px 12px;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin: 5px;
+            transition: transform 0.3s ease;
+        }
+        #uploadButton {
+            background: #4a90e2;
+            color: white;
+        }
+        #uploadButton:hover {
+            transform: scale(1.05);
+            background: #357abd;
+        }
+        #startRecord {
+            background: #4a90e2;
+            color: white;
+        }
+        #startRecord:hover {
+            transform: scale(1.05);
+            background: #357abd;
+        }
+        #stopRecord {
+            background: #d3d3d3;
+            color: #333;
+        }
+        #stopRecord:hover {
+            transform: scale(1.05);
+            background: #bdbdbd;
+        }
+        #stopRecord:disabled {
+            background: #d3d3d3;
+            cursor: not-allowed;
+        }
+        #predictionResult {
+            font-size: 1.2rem;
+            color: #fff;
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .overlay.active {
+            display: flex;
+        }
+        .loader {
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #4a90e2;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .prediction-feedback {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 2rem;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        .prediction-feedback.active {
+            display: flex;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-title">Acoustic Classification of Brushless DC Motor Faults (Sonic Shield)</div>
+    <div class="container">
+        <div class="card">
+            <form id="uploadForm" enctype="multipart/form-data">
+                <label for="audioFile">Upload Audio File:</label>
+                <input type="file" id="audioFile" name="file" accept=".wav,.mp3">
+                <button type="submit" id="uploadButton">Upload & Predict</button>
+            </form>
+        </div>
+        <div class="card">
+            <form id="recordForm">
+                <button type="button" id="startRecord">Start Recording</button>
+                <button type="button" id="stopRecord" disabled>Stop & Predict</button>
+            </form>
+        </div>
+        <h2>Prediction:</h2>
+        <p id="predictionResult"></p>
+        <a href="{{ url_for('logout') }}" style="color: #e0e0e0; text-decoration: none;">Logout</a>
+    </div>
+    <div class="overlay" id="processingOverlay">
+        <div class="loader"></div>
+        <p style="margin-top: 10px; color: #fff;">Processing...</p>
+    </div>
+    <div class="prediction-feedback" id="predictionFeedback"></div>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        const overlay = document.getElementById('processingOverlay');
+        const feedback = document.getElementById('predictionFeedback');
+
+        document.getElementById('uploadForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const fileInput = document.getElementById('audioFile');
+            if (!fileInput.files[0]) {
+                document.getElementById('predictionResult').innerText = 'Error: No file selected';
+                return;
+            }
+            overlay.classList.add('active');
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            fetch('/predict', {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => response.json())
+            .then(data => {
+                overlay.classList.remove('active');
+                if (data.error) {
+                    document.getElementById('predictionResult').innerText = data.error;
+                } else {
+                    let resultText = `Prediction: ${data.predicted_class}\nProbabilities:\n`;
+                    const classNames = ['Heavy_loaded', 'Good', 'Broken'];
+                    data.probabilities.forEach((prob, index) => {
+                        resultText += `${classNames[index]}: ${(prob * 100).toFixed(2)}%\n`;
+                    });
+                    document.getElementById('predictionResult').innerText = resultText;
+                    updateFeedback(data.predicted_class);
+                }
+            })
+            .catch(error => {
+                overlay.classList.remove('active');
+                document.getElementById('predictionResult').innerText = 'Error: ' + error;
+            });
+        });
+
+        document.getElementById('startRecord').addEventListener('click', function() {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    mediaRecorder = new MediaRecorder(stream);
+                    mediaRecorder.start();
+                    audioChunks = [];
+                    overlay.classList.add('active');
+
+                    mediaRecorder.ondataavailable = event => {
+                        audioChunks.push(event.data);
+                    };
+
+                    mediaRecorder.onstop = () => {
+                        overlay.classList.remove('active');
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                        const formData = new FormData();
+                        formData.append('file', audioBlob, 'recorded_audio.wav');
+
+                        fetch('/predict', {
+                            method: 'POST',
+                            body: formData,
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.error) {
+                                document.getElementById('predictionResult').innerText = data.error;
+                            } else {
+                                let resultText = `Prediction: ${data.predicted_class}\nProbabilities:\n`;
+                                const classNames = ['Heavy_loaded', 'Good', 'Broken'];
+                                data.probabilities.forEach((prob, index) => {
+                                    resultText += `${classNames[index]}: ${(prob * 100).toFixed(2)}%\n`;
+                                });
+                                document.getElementById('predictionResult').innerText = resultText;
+                                updateFeedback(data.predicted_class);
+                            }
+                        })
+                        .catch(error => {
+                            document.getElementById('predictionResult').innerText = 'Error: ' + error;
+                        });
+                    };
+
+                    document.getElementById('startRecord').disabled = true;
+                    document.getElementById('stopRecord').disabled = false;
+                })
+                .catch(error => {
+                    overlay.classList.remove('active');
+                    document.getElementById('predictionResult').innerText = 'Error: ' + error;
+                });
+        });
+
+        document.getElementById('stopRecord').addEventListener('click', function() {
+            mediaRecorder.stop();
+            mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            document.getElementById('startRecord').disabled = false;
+            document.getElementById('stopRecord').disabled = true;
+        });
+
+        function updateFeedback(prediction) {
+            feedback.innerText = `Motor Condition: ${prediction}`;
+            feedback.classList.add('active');
+            if (prediction === 'Good') {
+                document.body.style.backgroundColor = '#00cc00'; // Green
+            } else if (prediction === 'Heavy_loaded') {
+                document.body.style.backgroundColor = '#0066cc'; // Blue
+            } else if (prediction === 'Broken') {
+                document.body.style.backgroundColor = '#ff0000'; // Red
+            }
+            setTimeout(() => {
+                feedback.classList.remove('active');
+                document.body.style.backgroundColor = ''; // Reset to image background
+            }, 3000); // Display for 3 seconds
+        }
+    </script>
+</body>
+</html>

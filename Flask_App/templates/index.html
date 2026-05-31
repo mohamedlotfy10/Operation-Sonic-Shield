@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Classification</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="main-title">ACOUSTIC CLASSIFICATION OF BRUSHLESS DC MOTOR FAULTS (SONIC SHIELD)</div>
+
+    <div class="container">
+        <!-- Upload Audio File Section -->
+        <div class="card">
+            <form id="uploadForm" enctype="multipart/form-data">
+                <label for="audioFile">Upload Audio File:</label>
+                <input type="file" id="audioFile" name="file" accept=".wav,.mp3">
+                <button type="submit" id="uploadButton">Upload & Predict</button>
+            </form>
+        </div>
+
+        <!-- Record Audio Section -->
+        <div class="card">
+            <button type="button" id="startRecord">Start Recording</button>
+            <button type="button" id="stopRecord" disabled>Stop & Predict</button>
+        </div>
+
+        <!-- Prediction Output -->
+        <h2>Prediction:</h2>
+        <pre id="predictionResult">Awaiting input...</pre>
+
+        <!-- Logout -->
+        <a href="{{ url_for('logout') }}">Logout</a>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+    let mediaRecorder;
+    let audioChunks = [];
+    let mediaStream = null;
+
+    const startBtn = document.getElementById("startRecord");
+    const stopBtn = document.getElementById("stopRecord");
+    const resultText = document.getElementById("predictionResult");
+
+    document.getElementById("uploadForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        const file = document.getElementById("audioFile").files[0];
+        if (!file) return alert("Please select an audio file.");
+
+        resetResult();
+        const formData = new FormData();
+        formData.append("file", file);
+        sendForPrediction(formData);
+    });
+
+    startBtn.addEventListener("click", async () => {
+        try {
+            if (mediaStream) mediaStream.getTracks().forEach(track => track.stop());
+
+            mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            audioChunks = [];
+            mediaRecorder = new MediaRecorder(mediaStream);
+
+            mediaRecorder.ondataavailable = e => {
+                if (e.data.size > 0) audioChunks.push(e.data);
+            };
+
+            mediaRecorder.onstop = async () => {
+                if (audioChunks.length > 0) {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const formData = new FormData();
+                    formData.append("file", audioBlob, "recorded_audio.webm");
+
+                    resetResult();
+                    audioChunks = [];
+
+                    await sendForPrediction(formData);
+                    mediaRecorder = null;
+                }
+            };
+
+            // Increase delay and provide clearer prompt
+            resultText.innerText = "🎤 Recording will start in 2 seconds... Start the motor sound AFTER the delay!";
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            mediaRecorder.start();
+            resultText.innerText = "🎤 Recording...";
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+        } catch (err) {
+            console.error("Microphone access error:", err);
+            alert("Microphone access is required to record.");
+        }
+    });
+
+    stopBtn.addEventListener("click", () => {
+        if (mediaRecorder && mediaRecorder.state === "recording") {
+            resultText.innerText = "⏳ Stopping recording and predicting...";
+            mediaRecorder.stop();
+
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+        }
+    });
+
+    function resetResult() {
+        resultText.innerText = "⏳ Uploading and predicting...";
+    }
+
+    async function sendForPrediction(formData) {
+        try {
+            const response = await fetch("/predict", {
+                method: "POST",
+                body: formData,
+            });
+
+            const data = await response.json();
+
+            if (data.error) {
+                resultText.innerText = "❌ Error: " + data.error;
+            } else {
+                const pred = data.predicted_class;
+                const probs = data.probabilities;
+                let probString = probs.map((p, i) => `Class ${i}: ${(p * 100).toFixed(2)}%`).join("\n");
+                resultText.innerText = `✅ Prediction: ${pred}\n\n📊 Probabilities:\n${probString}`;
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            resultText.innerText = "❌ Prediction failed.";
+        }
+    }
+    </script>
+</body>
+</html>

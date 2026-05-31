@@ -1,0 +1,23 @@
+# Project Python dependencies (use a virtual environment)
+# Pins kept minimal; adjust versions as needed for your platform
+scikit-learn==1.4.2
+audiomentations==0.36.0
+transformers
+datasets
+optimum[onnxruntime]
+onnx
+onnx-tf
+tensorflow
+torch
+librosa
+noisereduce
+numpy
+pandas
+matplotlib
+seaborn
+soundfile
+flask
+flask_sqlalchemy
+flask_login
+werkzeug
+scipy
