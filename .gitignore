@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+myenv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Data and models
+*.h5
+*.keras
+*.tflite
+*.onnx
+*.pt
+*.pth
+data/
+uploads/
+Uploads/
+
+# Logs and outputs
+*.log
+*.csv
+plots/
+output/
+
+# IDEs
+.vscode/
+.idea/
+
+# OS files
+Thumbs.db
+desktop.ini
